@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(
+                                "/test",
                                 "/api/auth/**",
                                 "/api/resumes/parse",
                                 "/v3/api-docs/**",
