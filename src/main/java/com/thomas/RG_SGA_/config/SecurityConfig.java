@@ -45,8 +45,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/test",
-                                "/api/auth/**",
-                                "/api/resumes/parse",
+                                "/auth/**",                                "/api/resumes/parse",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
