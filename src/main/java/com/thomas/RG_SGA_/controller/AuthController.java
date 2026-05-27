@@ -54,5 +54,10 @@ public class AuthController {
     public ResponseEntity<ApiResponseWrapper<AuthResponse>> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
         return ResponseEntity.ok(ApiResponseWrapper.success("OAuth login successful", authService.googleLogin(request)));
     }
+
+    @PostMapping("/github-login")
+    public ResponseEntity<ApiResponseWrapper<AuthResponse>> githubLogin(@Valid @RequestBody GithubLoginRequest request) {
+        return ResponseEntity.ok(ApiResponseWrapper.success("OAuth login successful", authService.githubLogin(request)));
+    }
 }
 
