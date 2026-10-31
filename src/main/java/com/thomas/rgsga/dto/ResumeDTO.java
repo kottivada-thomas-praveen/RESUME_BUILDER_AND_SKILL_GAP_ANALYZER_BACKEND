@@ -1,6 +1,8 @@
 package com.thomas.rgsga.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -12,10 +14,15 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ResumeDTO {
 
     private Long id;
+
+    @JsonProperty("fullName")
+    @JsonAlias({"name", "full_name"})
     private String fullName;
+
     private String title;
     private String email;
     private String phone;
@@ -23,7 +30,8 @@ public class ResumeDTO {
     private String website;
     private String summary;
 
-    @JsonAlias({"skillsCsv"})
+    @JsonProperty("skills")
+    @JsonAlias({"skillsCsv", "skills_csv", "userSkills"})
     private String skills;
 
     @Builder.Default
@@ -51,6 +59,8 @@ public class ResumeDTO {
     @Builder.Default
     private Integer downloadCount = 0;
 
+    @JsonProperty("targetJobDescription")
+    @JsonAlias({"jobDescription", "jobDesc", "target_job_description"})
     private String targetJobDescription;
 
     @Builder.Default
@@ -64,4 +74,32 @@ public class ResumeDTO {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public void setName(String name) {
+        if (name != null && !name.isBlank()) {
+            this.fullName = name;
+        }
+    }
+
+    public String getName() {
+        return this.fullName;
+    }
+
+    public void setSkillsCsv(String skillsCsv) {
+        if (skillsCsv != null && !skillsCsv.isBlank()) {
+            this.skills = skillsCsv;
+        }
+    }
+
+    public void setJobDescription(String jobDescription) {
+        if (jobDescription != null && !jobDescription.isBlank()) {
+            this.targetJobDescription = jobDescription;
+        }
+    }
+
+    public void setJobDesc(String jobDesc) {
+        if (jobDesc != null && !jobDesc.isBlank()) {
+            this.targetJobDescription = jobDesc;
+        }
+    }
 }

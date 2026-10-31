@@ -46,10 +46,23 @@ public class UserProfileController {
 
     @PostMapping("/skills")
     @Operation(summary = "Add a new skill")
-    public ResponseEntity<ApiResponse<Skill>> addSkill(@AuthenticationPrincipal User user,
-                                                       @RequestParam String skillName,
-                                                       @RequestParam(required = false) String proficiency) {
-        return ResponseEntity.ok(ApiResponse.success("Skill added", userProfileService.addSkill(user, skillName, proficiency)));
+    public ResponseEntity<ApiResponse<Skill>> addSkill(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String skillName,
+            @RequestParam(required = false) String proficiency,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String resolvedName = skillName;
+        String resolvedProficiency = proficiency;
+        if ((resolvedName == null || resolvedName.isBlank()) && body != null) {
+            resolvedName = body.getOrDefault("skillName", body.getOrDefault("name", body.get("skill")));
+            if (resolvedProficiency == null) {
+                resolvedProficiency = body.get("proficiency");
+            }
+        }
+        if (resolvedName == null || resolvedName.isBlank()) {
+            throw new com.thomas.rgsga.exception.BadRequestException("Skill name is required");
+        }
+        return ResponseEntity.ok(ApiResponse.success("Skill added", userProfileService.addSkill(user, resolvedName.trim(), resolvedProficiency)));
     }
 
     @DeleteMapping("/skills/{id}")

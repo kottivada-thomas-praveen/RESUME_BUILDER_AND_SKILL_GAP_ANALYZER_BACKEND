@@ -23,9 +23,18 @@ public class SocialImportController {
 
     @PostMapping("/github")
     @Operation(summary = "Analyze public GitHub developer profile and repositories")
-    public ResponseEntity<ApiResponse<GithubAnalysis>> importGithub(@AuthenticationPrincipal User user,
-                                                                    @RequestParam String username) {
-        GithubAnalysis analysis = githubImportService.analyzeGithubProfile(user, username);
+    public ResponseEntity<ApiResponse<GithubAnalysis>> importGithub(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String username,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String resolvedUsername = username;
+        if ((resolvedUsername == null || resolvedUsername.isBlank()) && body != null) {
+            resolvedUsername = body.getOrDefault("username", body.get("user"));
+        }
+        if (resolvedUsername == null || resolvedUsername.isBlank()) {
+            throw new com.thomas.rgsga.exception.BadRequestException("Username is required");
+        }
+        GithubAnalysis analysis = githubImportService.analyzeGithubProfile(user, resolvedUsername.trim());
         return ResponseEntity.ok(ApiResponse.success("GitHub developer profile scanned successfully", analysis));
     }
 }
