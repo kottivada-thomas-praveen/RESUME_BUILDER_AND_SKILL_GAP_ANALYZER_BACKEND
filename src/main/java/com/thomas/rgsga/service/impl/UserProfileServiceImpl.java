@@ -31,7 +31,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public UserProfile getProfile(User user) {
         return userProfileRepository.findByUserId(user.getId())
                 .orElseGet(() -> userProfileRepository.save(UserProfile.builder().user(user).build()));

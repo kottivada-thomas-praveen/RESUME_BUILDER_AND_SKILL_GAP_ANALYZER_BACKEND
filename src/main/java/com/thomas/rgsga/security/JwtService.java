@@ -31,6 +31,10 @@ public class JwtService {
     @Value("${application.security.jwt.refresh-token.expiration:604800000}") // Default 7 days (604,800,000 ms)
     private long refreshExpiration;
 
+    // Cache the signing key — it is derived from a fixed secret and never changes at runtime.
+    // Previously getSigningKey() ran 2–3 try/catch blocks + a SHA-256 hash on every JWT operation.
+    private volatile SecretKey cachedSigningKey;
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -102,21 +106,25 @@ public class JwtService {
     }
 
     private SecretKey getSigningKey() {
+        if (cachedSigningKey != null) {
+            return cachedSigningKey;
+        }
+        // Derive and cache the signing key. This runs only once per application lifecycle.
         try {
-            // Attempt standard Base64 decode
             byte[] keyBytes = Decoders.BASE64.decode(secretKey);
             if (keyBytes.length >= 32) {
-                return Keys.hmacShaKeyFor(keyBytes);
+                cachedSigningKey = Keys.hmacShaKeyFor(keyBytes);
+                return cachedSigningKey;
             }
         } catch (Exception ignored) {
             // Fall back if not pure Base64
         }
 
         try {
-            // Attempt Hex decode
             byte[] hexBytes = Decoders.BASE64URL.decode(secretKey);
             if (hexBytes.length >= 32) {
-                return Keys.hmacShaKeyFor(hexBytes);
+                cachedSigningKey = Keys.hmacShaKeyFor(hexBytes);
+                return cachedSigningKey;
             }
         } catch (Exception ignored) {
             // Fall back
@@ -126,7 +134,8 @@ public class JwtService {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] keyHash = digest.digest(secretKey.getBytes(StandardCharsets.UTF_8));
-            return Keys.hmacShaKeyFor(keyHash);
+            cachedSigningKey = Keys.hmacShaKeyFor(keyHash);
+            return cachedSigningKey;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize cryptographic JWT signing key", e);
         }

@@ -16,6 +16,7 @@ import com.thomas.rgsga.service.AuthService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,12 +93,14 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
-        authenticationManager.authenticate(
+        // authenticate() internally calls loadUserByUsername() which performs one DB lookup.
+        // We extract the already-loaded User principal from the returned Authentication object
+        // to avoid a second redundant DB query (findByEmailIgnoreCase was the previous duplicate).
+        var authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.getPassword())
         );
 
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        User user = (User) authentication.getPrincipal();
 
         if (!user.isEnabled()) {
             throw new UnauthorizedException("Account is disabled. Please contact support.");
