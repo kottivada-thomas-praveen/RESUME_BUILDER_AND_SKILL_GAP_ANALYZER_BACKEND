@@ -110,16 +110,7 @@ public class JwtService {
             return cachedSigningKey;
         }
         // Derive and cache the signing key. This runs only once per application lifecycle.
-        try {
-            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-            if (keyBytes.length >= 32) {
-                cachedSigningKey = Keys.hmacShaKeyFor(keyBytes);
-                return cachedSigningKey;
-            }
-        } catch (Exception ignored) {
-            // Fall back if not pure Base64
-        }
-
+        // Try hex decoding first (64-char hex = 32 bytes), then Base64, then SHA-256 fallback.
         try {
             byte[] hexBytes = Decoders.BASE64URL.decode(secretKey);
             if (hexBytes.length >= 32) {
@@ -127,7 +118,17 @@ public class JwtService {
                 return cachedSigningKey;
             }
         } catch (Exception ignored) {
-            // Fall back
+            // Fall back if not hex
+        }
+
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+            if (keyBytes.length >= 32) {
+                cachedSigningKey = Keys.hmacShaKeyFor(keyBytes);
+                return cachedSigningKey;
+            }
+        } catch (Exception ignored) {
+            // Fall back if not Base64
         }
 
         // Resilient fallback: SHA-256 hash of secret string guarantees exact 32 bytes (256 bits)
