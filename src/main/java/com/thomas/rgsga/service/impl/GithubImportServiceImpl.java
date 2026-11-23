@@ -73,8 +73,13 @@ public class GithubImportServiceImpl implements GithubImportService {
         int score = Math.min(100, 50 + (totalRepos * 3) + (languages.size() * 5));
         String techCsv = String.join(", ", languages);
 
-        GithubAnalysis analysis = githubAnalysisRepository.findByUserIdAndUsernameIgnoreCase(user.getId(), cleanUsername)
-                .orElseGet(() -> GithubAnalysis.builder().user(user).username(cleanUsername).build());
+        GithubAnalysis analysis;
+        if (user != null) {
+            analysis = githubAnalysisRepository.findByUserIdAndUsernameIgnoreCase(user.getId(), cleanUsername)
+                    .orElseGet(() -> GithubAnalysis.builder().user(user).username(cleanUsername).build());
+        } else {
+            analysis = GithubAnalysis.builder().username(cleanUsername).build();
+        }
 
         analysis.setDevScore(score);
         analysis.setRepoCount(totalRepos);
@@ -84,6 +89,9 @@ public class GithubImportServiceImpl implements GithubImportService {
         } catch (Exception ignored) {
         }
 
-        return githubAnalysisRepository.save(analysis);
+        if (user != null) {
+            return githubAnalysisRepository.save(analysis);
+        }
+        return analysis;
     }
 }

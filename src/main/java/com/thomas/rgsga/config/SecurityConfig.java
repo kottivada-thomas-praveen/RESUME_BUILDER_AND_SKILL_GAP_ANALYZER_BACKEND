@@ -60,7 +60,12 @@ public class SecurityConfig {
                                 "/api/resumes/validate-format",
                                 "/api/optimize/bullet",
                                 "/api/grammar/check",
-                                "/api/ats/extract-keywords"
+                                "/api/ats/analyze",
+                                "/api/ats/extract-keywords",
+                                "/api/skill-gap/analyze",
+                                "/api/interview/prep",
+                                "/api/career/recommend",
+                                "/api/import/github"
                         ).permitAll()
                         // Health and Swagger documentation
                         .requestMatchers(
