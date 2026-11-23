@@ -18,6 +18,9 @@ public class UserResponse {
     private String role;
     private Boolean accountEnabled;
     private Boolean emailVerified;
+    private LocalDateTime lastLoginAt;
+    private Integer loginCount;
+    private Integer failedLoginCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -25,6 +25,12 @@ public class CorsConfig {
                 .toList();
 
         config.setAllowedOrigins(origins);
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://*.vercel.app",
+                "https://*.onrender.com"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));

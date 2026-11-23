@@ -12,7 +12,9 @@ import com.thomas.rgsga.mapper.UserMapper;
 import com.thomas.rgsga.repository.UserProfileRepository;
 import com.thomas.rgsga.repository.UserRepository;
 import com.thomas.rgsga.security.JwtService;
+import com.thomas.rgsga.service.AnalyticsService;
 import com.thomas.rgsga.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,6 +22,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -35,19 +39,32 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
+    private final AnalyticsService analyticsService;
 
     public AuthServiceImpl(UserRepository userRepository,
                            UserProfileRepository userProfileRepository,
                            PasswordEncoder passwordEncoder,
                            JwtService jwtService,
                            AuthenticationManager authenticationManager,
-                           UserMapper userMapper) {
+                           UserMapper userMapper,
+                           AnalyticsService analyticsService) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.userMapper = userMapper;
+        this.analyticsService = analyticsService;
+    }
+
+    private HttpServletRequest getCurrentHttpRequest() {
+        try {
+            var attributes = RequestContextHolder.getRequestAttributes();
+            if (attributes instanceof ServletRequestAttributes sra) {
+                return sra.getRequest();
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     @Override
@@ -85,6 +102,9 @@ public class AuthServiceImpl implements AuthService {
         user.setRefreshToken(refreshToken);
         userRepository.save(user);
 
+        analyticsService.logAuthEvent(email, "REGISTER", "SUCCESS", null, getCurrentHttpRequest(), user);
+        analyticsService.logUserActivity(user, "USER_REGISTERED", "USER", user.getId(), "New account registered: " + user.getName(), getCurrentHttpRequest());
+
         log.info("New user registered successfully: {}", email);
         return userMapper.toAuthResponse(user, accessToken, refreshToken);
     }
@@ -93,27 +113,41 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse login(LoginRequest request) {
         String email = request.getEmail().trim().toLowerCase();
 
-        // authenticate() internally calls loadUserByUsername() which performs one DB lookup.
-        // We extract the already-loaded User principal from the returned Authentication object
-        // to avoid a second redundant DB query (findByEmailIgnoreCase was the previous duplicate).
-        var authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.getPassword())
-        );
+        try {
+            var authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword())
+            );
 
-        User user = (User) authentication.getPrincipal();
+            User user = (User) authentication.getPrincipal();
 
-        if (!user.isEnabled()) {
-            throw new UnauthorizedException("Account is disabled. Please contact support.");
+            if (!user.isEnabled()) {
+                analyticsService.logAuthEvent(email, "LOGIN_FAILURE", "FAILURE", "Account is disabled", getCurrentHttpRequest(), user);
+                throw new UnauthorizedException("Account is disabled. Please contact support.");
+            }
+
+            user.setLastLoginAt(LocalDateTime.now());
+            user.setLoginCount((user.getLoginCount() != null ? user.getLoginCount() : 0) + 1);
+            user.setFailedLoginCount(0);
+
+            String accessToken = jwtService.generateToken(user);
+            String refreshToken = jwtService.generateRefreshToken(user);
+
+            user.setRefreshToken(refreshToken);
+            userRepository.save(user);
+
+            analyticsService.logAuthEvent(email, "LOGIN_SUCCESS", "SUCCESS", null, getCurrentHttpRequest(), user);
+            analyticsService.logUserActivity(user, "LOGIN", "AUTH", user.getId(), "User logged in", getCurrentHttpRequest());
+
+            log.info("User logged in successfully: {}", email);
+            return userMapper.toAuthResponse(user, accessToken, refreshToken);
+        } catch (Exception e) {
+            userRepository.findByEmailIgnoreCase(email).ifPresent(u -> {
+                u.setFailedLoginCount((u.getFailedLoginCount() != null ? u.getFailedLoginCount() : 0) + 1);
+                userRepository.save(u);
+            });
+            analyticsService.logAuthEvent(email, "LOGIN_FAILURE", "FAILURE", e.getMessage(), getCurrentHttpRequest(), null);
+            throw e;
         }
-
-        String accessToken = jwtService.generateToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        user.setRefreshToken(refreshToken);
-        userRepository.save(user);
-
-        log.info("User logged in successfully: {}", email);
-        return userMapper.toAuthResponse(user, accessToken, refreshToken);
     }
 
     @Override
@@ -165,6 +199,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
             user.setRefreshToken(null);
             userRepository.save(user);
+            analyticsService.logAuthEvent(email, "LOGOUT", "SUCCESS", null, getCurrentHttpRequest(), user);
             log.info("User logged out: {}", email);
         });
     }
@@ -177,6 +212,7 @@ public class AuthServiceImpl implements AuthService {
             user.setResetToken(token);
             user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(15));
             userRepository.save(user);
+            analyticsService.logAuthEvent(email, "PASSWORD_RESET_REQUEST", "SUCCESS", null, getCurrentHttpRequest(), user);
             log.info("Generated password reset token [{}] for email [{}]", token, email);
         });
     }
@@ -187,6 +223,7 @@ public class AuthServiceImpl implements AuthService {
                 .orElseThrow(() -> new BadRequestException("Invalid or expired reset token"));
 
         if (user.getResetTokenExpiry() == null || user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            analyticsService.logAuthEvent(user.getEmail(), "PASSWORD_RESET_FAILURE", "FAILURE", "Token expired", getCurrentHttpRequest(), user);
             throw new BadRequestException("Reset token has expired");
         }
 
@@ -195,6 +232,7 @@ public class AuthServiceImpl implements AuthService {
         user.setResetTokenExpiry(null);
         userRepository.save(user);
 
+        analyticsService.logAuthEvent(user.getEmail(), "PASSWORD_RESET_SUCCESS", "SUCCESS", null, getCurrentHttpRequest(), user);
         log.info("Password successfully reset for user: {}", user.getEmail());
     }
 

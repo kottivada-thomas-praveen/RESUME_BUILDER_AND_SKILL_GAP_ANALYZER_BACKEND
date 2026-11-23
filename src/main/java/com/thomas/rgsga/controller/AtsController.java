@@ -22,10 +22,14 @@ public class AtsController {
 
     private final AtsService atsService;
     private final com.thomas.rgsga.service.KeywordExtractionService keywordExtractionService;
+    private final com.thomas.rgsga.service.AnalyticsService analyticsService;
 
-    public AtsController(AtsService atsService, com.thomas.rgsga.service.KeywordExtractionService keywordExtractionService) {
+    public AtsController(AtsService atsService,
+                         com.thomas.rgsga.service.KeywordExtractionService keywordExtractionService,
+                         com.thomas.rgsga.service.AnalyticsService analyticsService) {
         this.atsService = atsService;
         this.keywordExtractionService = keywordExtractionService;
+        this.analyticsService = analyticsService;
     }
 
     @PostMapping("/analyze")
@@ -33,6 +37,8 @@ public class AtsController {
     public ResponseEntity<ApiResponse<AtsResponse>> analyze(@AuthenticationPrincipal User user,
                                                             @Valid @RequestBody AtsRequest request) {
         AtsResponse response = atsService.analyzeResume(user, request);
+        analyticsService.logUserActivity(user, "ATS_ANALYSIS", "ATS", null,
+                "ATS score: " + response.getScore() + "% (Keyword Match: " + response.getKeywordMatchScore() + "%)", null);
         return ResponseEntity.ok(ApiResponse.success("ATS analysis completed successfully", response));
     }
 

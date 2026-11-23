@@ -55,6 +55,8 @@ public class SecurityConfig {
                         ).permitAll()
                         // Public tools / parsers
                         .requestMatchers(
+                                "/api/contact/**",
+                                "/api/analytics/**",
                                 "/api/public/resumes/**",
                                 "/api/resumes/parse",
                                 "/api/resumes/validate-format",

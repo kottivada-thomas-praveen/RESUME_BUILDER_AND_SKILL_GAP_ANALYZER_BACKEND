@@ -18,6 +18,9 @@ public class UserMapper {
                 .role(user.getRole().name())
                 .accountEnabled(user.getAccountEnabled())
                 .emailVerified(user.getEmailVerified())
+                .lastLoginAt(user.getLastLoginAt())
+                .loginCount(user.getLoginCount())
+                .failedLoginCount(user.getFailedLoginCount())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

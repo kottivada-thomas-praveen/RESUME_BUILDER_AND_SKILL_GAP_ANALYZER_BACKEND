@@ -29,15 +29,18 @@ public class ResumeController {
     private final PdfExportService pdfExportService;
     private final ResumeParseService resumeParseService;
     private final com.thomas.rgsga.service.FileStorageService fileStorageService;
+    private final com.thomas.rgsga.service.AnalyticsService analyticsService;
 
     public ResumeController(ResumeService resumeService,
                             PdfExportService pdfExportService,
                             ResumeParseService resumeParseService,
-                            com.thomas.rgsga.service.FileStorageService fileStorageService) {
+                            com.thomas.rgsga.service.FileStorageService fileStorageService,
+                            com.thomas.rgsga.service.AnalyticsService analyticsService) {
         this.resumeService = resumeService;
         this.pdfExportService = pdfExportService;
         this.resumeParseService = resumeParseService;
         this.fileStorageService = fileStorageService;
+        this.analyticsService = analyticsService;
     }
 
     @GetMapping
@@ -120,6 +123,8 @@ public class ResumeController {
         headers.setContentDispositionFormData("attachment", "resume-" + id + ".pdf");
         headers.setContentLength(pdf.length);
 
+        analyticsService.logUserActivity(user, "RESUME_DOWNLOADED", "RESUME", id, "Exported PDF for resume: " + resume.getTitle(), null);
+
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
@@ -127,6 +132,7 @@ public class ResumeController {
     @Operation(summary = "Parse uploaded PDF/TXT resume into structured JSON")
     public ResponseEntity<ApiResponse<ResumeDTO>> parseResume(@RequestParam("file") MultipartFile file) throws IOException {
         ResumeDTO parsed = resumeParseService.parseResumeFile(file);
+        analyticsService.logUserActivity(null, "RESUME_UPLOADED", "RESUME_FILE", null, "Parsed uploaded resume file: " + file.getOriginalFilename(), null);
         return ResponseEntity.ok(ApiResponse.success("Resume parsed successfully", parsed));
     }
 }

@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:postgresql://localhost:5432/testdb",
+        "spring.datasource.url=jdbc:postgresql://localhost:5432/sga_db",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=none",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect"

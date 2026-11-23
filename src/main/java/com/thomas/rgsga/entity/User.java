@@ -68,6 +68,17 @@ public class User implements UserDetails {
     @Builder.Default
     private Boolean accountEnabled = true;
 
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Column(name = "login_count")
+    @Builder.Default
+    private Integer loginCount = 0;
+
+    @Column(name = "failed_login_count")
+    @Builder.Default
+    private Integer failedLoginCount = 0;
+
     @Column(name = "oauth_provider", length = 50)
     private String oauthProvider;
 

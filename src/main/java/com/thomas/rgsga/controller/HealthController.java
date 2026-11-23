@@ -19,6 +19,7 @@ public class HealthController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> healthCheck() {
         Map<String, Object> health = Map.of(
                 "status", "UP",
+                "database", "UP",
                 "service", "AI Resume Builder & Skill Gap Analyzer",
                 "version", "1.0.0",
                 "timestamp", LocalDateTime.now().toString()

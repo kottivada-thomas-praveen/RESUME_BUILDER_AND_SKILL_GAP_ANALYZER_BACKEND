@@ -6,6 +6,7 @@ import com.thomas.rgsga.entity.User;
 import com.thomas.rgsga.exception.ResourceNotFoundException;
 import com.thomas.rgsga.mapper.ResumeMapper;
 import com.thomas.rgsga.repository.ResumeRepository;
+import com.thomas.rgsga.service.AnalyticsService;
 import com.thomas.rgsga.service.ResumeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,14 @@ public class ResumeServiceImpl implements ResumeService {
 
     private final ResumeRepository resumeRepository;
     private final ResumeMapper resumeMapper;
+    private final AnalyticsService analyticsService;
 
-    public ResumeServiceImpl(ResumeRepository resumeRepository, ResumeMapper resumeMapper) {
+    public ResumeServiceImpl(ResumeRepository resumeRepository,
+                             ResumeMapper resumeMapper,
+                             AnalyticsService analyticsService) {
         this.resumeRepository = resumeRepository;
         this.resumeMapper = resumeMapper;
+        this.analyticsService = analyticsService;
     }
 
     @Override
@@ -57,6 +62,7 @@ public class ResumeServiceImpl implements ResumeService {
     public ResumeDTO createResume(User user, ResumeDTO dto) {
         Resume resume = resumeMapper.toEntity(dto, user);
         Resume saved = resumeRepository.save(resume);
+        analyticsService.logUserActivity(user, "RESUME_CREATED", "RESUME", saved.getId(), "Created resume: " + saved.getTitle(), null);
         log.info("Created new resume id [{}] for user [{}]", saved.getId(), user.getEmail());
         return resumeMapper.toDTO(saved);
     }
@@ -66,6 +72,7 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = getResumeEntityById(user, resumeId);
         resumeMapper.updateEntityFromDTO(resume, dto, user);
         Resume updated = resumeRepository.save(resume);
+        analyticsService.logUserActivity(user, "RESUME_UPDATED", "RESUME", updated.getId(), "Updated resume: " + updated.getTitle(), null);
         log.info("Updated resume id [{}] for user [{}]", updated.getId(), user.getEmail());
         return resumeMapper.toDTO(updated);
     }
@@ -80,6 +87,7 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = getResumeEntityById(user, resumeId);
         resume.setIsActive(false);
         resumeRepository.save(resume);
+        analyticsService.logUserActivity(user, "RESUME_DELETED", "RESUME", resumeId, "Soft deleted resume id: " + resumeId, null);
         log.info("Soft deleted resume id [{}] for user [{}]", resumeId, user.getEmail());
     }
 

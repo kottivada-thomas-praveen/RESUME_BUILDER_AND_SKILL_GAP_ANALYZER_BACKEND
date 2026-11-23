@@ -21,9 +21,12 @@ import java.util.List;
 public class SkillGapController {
 
     private final SkillGapService skillGapService;
+    private final com.thomas.rgsga.service.AnalyticsService analyticsService;
 
-    public SkillGapController(SkillGapService skillGapService) {
+    public SkillGapController(SkillGapService skillGapService,
+                              com.thomas.rgsga.service.AnalyticsService analyticsService) {
         this.skillGapService = skillGapService;
+        this.analyticsService = analyticsService;
     }
 
     @PostMapping("/analyze")
@@ -31,6 +34,8 @@ public class SkillGapController {
     public ResponseEntity<ApiResponse<SkillGapResponse>> analyze(@AuthenticationPrincipal User user,
                                                                  @Valid @RequestBody SkillGapRequest request) {
         SkillGapResponse response = skillGapService.analyzeSkillGap(user, request);
+        analyticsService.logUserActivity(user, "SKILL_GAP_ANALYSIS", "SKILL_GAP", null,
+                "Skill gap study pathway generated for job description", null);
         return ResponseEntity.ok(ApiResponse.success("Skill gap study pathway generated successfully", response));
     }
 

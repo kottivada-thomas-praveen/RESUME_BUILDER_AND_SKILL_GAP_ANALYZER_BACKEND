@@ -21,9 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class InterviewController {
 
     private final InterviewService interviewService;
+    private final com.thomas.rgsga.service.AnalyticsService analyticsService;
 
-    public InterviewController(InterviewService interviewService) {
+    public InterviewController(InterviewService interviewService,
+                               com.thomas.rgsga.service.AnalyticsService analyticsService) {
         this.interviewService = interviewService;
+        this.analyticsService = analyticsService;
     }
 
     @PostMapping("/prep")
@@ -31,6 +34,8 @@ public class InterviewController {
     public ResponseEntity<ApiResponse<InterviewResponse>> prep(@AuthenticationPrincipal User user,
                                                                @Valid @RequestBody InterviewRequest request) {
         InterviewResponse response = interviewService.generateInterviewPrep(user, request);
+        analyticsService.logUserActivity(user, "INTERVIEW_PREP", "INTERVIEW", null,
+                "Generated interview prep for role: " + (request.getJobTitle() != null ? request.getJobTitle() : "General"), null);
         return ResponseEntity.ok(ApiResponse.success("Interview mock preparation checklist generated", response));
     }
 }
